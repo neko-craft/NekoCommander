@@ -1,0 +1,18 @@
+plugins {
+    id 'java'
+}
+
+group 'cn.apisium.nekocommander'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+
+dependencies {
+    compileOnly 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT'
+    compileOnly 'net.sf.jopt-simple:jopt-simple:6.0-alpha-3'
+    compileOnly 'org.jetbrains:annotations:19.0.0'
+}
