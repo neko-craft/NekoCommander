@@ -4,7 +4,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
 public final class CommandRecord extends Record {
     public MethodRecord mainCallback;
@@ -21,7 +24,7 @@ public final class CommandRecord extends Record {
             childCommands = null;
             return;
         }
-        for (final Class<?> clazz1 : clazz.getClasses()) if (clazz1.isAssignableFrom(BaseCommand.class)) try {
+        for (final Class<?> clazz1 : clazz.getClasses()) if (BaseCommand.class.isAssignableFrom(clazz1)) try {
             final CommandRecord record = new CommandRecord((BaseCommand) clazz1.getConstructors()[0].newInstance(cmd));
             record.names.forEach(it -> commands.put(it, record));
         } catch (Exception e) {

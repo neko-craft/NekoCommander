@@ -2,8 +2,8 @@ package cn.apisium.nekocommander;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
-import org.bukkit.command.*;
 import org.bukkit.command.Command;
+import org.bukkit.command.*;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +21,7 @@ public class Commander implements CommandExecutor, TabCompleter {
     private final HashMap<String, CommandRecord> commands = new HashMap<>();
     private final static Constructor<PluginCommand> pluginCommandConstructor;
     private final static SimpleCommandMap commandMap;
+    private final static List<String> EMPTY = Collections.emptyList();
 
     static {
         try {
@@ -64,7 +65,7 @@ public class Commander implements CommandExecutor, TabCompleter {
 
     @SuppressWarnings("unused")
     @NotNull
-    public Commander registerCommand(@NotNull final BaseCommand ...commands0) {
+    public Commander registerCommand(@NotNull final BaseCommand...commands0) {
         for (final BaseCommand command : commands0) {
             final CommandRecord record = new CommandRecord(command);
             if (record.names.isEmpty()) throw new RuntimeException("A command without name!");
@@ -85,6 +86,7 @@ public class Commander implements CommandExecutor, TabCompleter {
                 if (defaultPermissionMessage != null) cmd.setPermissionMessage(defaultPermissionMessage);
                 if (defaultUsage != null) cmd.setUsage(defaultUsage);
                 cmd.setExecutor(this);
+                cmd.setTabCompleter(this);
                 for (final BiConsumer<BaseCommand, PluginCommand> it : processors) it.accept(command, cmd);
                 commands.put(name, record);
             });
@@ -156,20 +158,33 @@ public class Commander implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(final CommandSender sender, org.bukkit.command.Command command, final String label, final String[] args) {
+    public boolean onCommand(final CommandSender sender, Command command, final String label, final String[] args) {
         CommandRecord record = commands.get(command.getName());
         if (record == null) return false;
-        for (int i = 0, len = args.length; i < len; i++) {
+        MethodRecord method = record.mainCallback;
+        int i = 0, len = args.length;
+        for (; i < len; i++) {
             Record obj = record.commands.get(args[i]);
             if (obj instanceof CommandRecord) {
                 record = (CommandRecord) obj;
+                for (final String p : obj.permissions) if (!sender.hasPermission(p)) {
+                    if (defaultPermissionMessage != null) sender.sendMessage(defaultPermissionMessage);
+                    return true;
+                }
                 continue;
             }
             if (obj == null) obj = record.mainCallback;
             if (obj == null) return false;
-            for (final String p : obj.permissions) if (!sender.hasPermission(p)) return false;
-            if (obj instanceof MethodRecord) return ((MethodRecord) obj).invoke(sender, Arrays.copyOfRange(args, i, args.length));
+            for (final String p : obj.permissions) if (!sender.hasPermission(p)) {
+                if (defaultPermissionMessage != null) sender.sendMessage(defaultPermissionMessage);
+                return true;
+            }
+            if (obj instanceof MethodRecord) {
+                method = (MethodRecord) obj;
+                break;
+            }
         }
+        if (method != null) return method.invoke(sender, Arrays.copyOfRange(args, Math.min(args.length - 1, i + 1), args.length));
         return false;
     }
 
@@ -178,20 +193,24 @@ public class Commander implements CommandExecutor, TabCompleter {
         throw (T) exception;
     }
 
+    @Nullable
     @Override
-    public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
+    public List<String> onTabComplete(@NotNull final CommandSender sender, @NotNull final Command command, @NotNull final String alias, @NotNull final String[] args) {
         CommandRecord record = commands.get(command.getName());
         if (record == null) return null;
         for (int i = 0, len = args.length; i < len; i++) {
-            Record obj = record.commands.get(args[i]);
+            final Record obj = record.commands.get(args[i]);
+            if (i == len - 1 && obj != null) break;
+            if (obj == null) break;
+            for (final String p : obj.permissions) if (!sender.hasPermission(p)) return EMPTY;
             if (obj instanceof CommandRecord) {
                 record = (CommandRecord) obj;
                 continue;
             }
-            if (obj == null) obj = record.mainCallback;
-            if (obj == null) return null;
-            for (final String p : obj.permissions) if (!sender.hasPermission(p)) return null;
-            if (obj instanceof MethodRecord) return ((MethodRecord) obj).complete(sender, Arrays.copyOfRange(args, i, args.length));
+            if (obj instanceof MethodRecord) {
+                final List<String> ret = ((MethodRecord) obj).complete(sender, Arrays.copyOfRange(args, Math.min(args.length - 1, i + 1), args.length));
+                return ret == null ? EMPTY : ret;
+            }
         }
         return record.childCommands;
     }

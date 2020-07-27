@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -38,20 +39,35 @@ public class MethodRecord extends Record implements Completer {
             final Parameter par = pars[i];
             final Argument arg = par.getAnnotation(Argument.class);
             final Class<?> type = par.getType();
-            if (type.isAssignableFrom(CommandSender.class)) {
+            if (CommandSender.class.isAssignableFrom(type)) {
                 isOnlyPlayer = true;
                 parameters[i] = CommandSender.class;
                 continue;
             }
-            if (type.isAssignableFrom(OptionSet.class)) {
-                if (parser != null) parser = new OptionParser();
+            if (type == OptionSet.class) {
+                if (parser == null) parser = new OptionParser();
                 parameters[i] = OptionSet.class;
                 continue;
             }
-            if (arg == null) parameters[i] = type.isArray() && type == String.class ? Arguments.class : par.getName();
-            else {
+            if (arg == null) {
+                if (type.isArray() && type.getComponentType() == String.class) parameters[i] = Arguments.class;
+                else if (par.isNamePresent()) addArgument(new Argument() {
+                    public @Override Class<? extends Annotation> annotationType() { return this.getClass(); }
+                    public @Override String[] value() { return new String[] { par.getName() }; }
+                    public @Override Class<?> type() { return type; }
+                    public @Override String description() { return ""; }
+                    public @Override String[] defaultValues() { return new String[0]; }
+                    public @Override boolean required() { return false; }
+                    public @Override Class<? extends Completer> completer() { return null; }
+                    public @Override String[] completeValues() { return new String[0]; }
+                }, type);
+            } else {
                 addArgument(arg, type);
-                parameters[i] = arg.value().length == 0 ? par.getName() : arg.value()[0];
+                if (arg.value().length != 0) parameters[i] = arg.value()[0];
+            }
+            if (parameters[i] == null) {
+                if (!par.isNamePresent()) throw new RuntimeException("Parameter name is not presented!");
+                parameters[i] = par.getName();
             }
         }
         final WithArgumentsProcessor processor = method.getAnnotation(WithArgumentsProcessor.class);
@@ -68,9 +84,9 @@ public class MethodRecord extends Record implements Completer {
                 if (!k.equals("[arguments]") && !parameterList.contains(key)) parameterList.add(key);
             });
         }
+        if (parser != null) parser.allowsUnrecognizedOptions();
     }
 
-    @SuppressWarnings("ConstantConditions")
     public boolean invoke(final @NotNull CommandSender sender, final String[] args) {
         if (isOnlyPlayer && !(sender instanceof Player)) return false;
         int i = parameters.length;
@@ -78,10 +94,10 @@ public class MethodRecord extends Record implements Completer {
         final OptionSet set = parser == null ? null : parser.parse(args);
         while (i-- > 0) {
             final Object obj = parameters[i];
-            if (obj == Player.class) pars[i] = sender;
+            if (obj == CommandSender.class) pars[i] = sender;
             else if (obj == OptionSet.class) pars[i] = set;
             else if (obj == Arguments.class) pars[i] = args;
-            else if (obj instanceof String) pars[i] = set.valueOf((String) obj);
+            else if (obj instanceof String) pars[i] = set == null ? null : set.valueOf((String) obj);
         }
         try {
             final Object ret = method.invoke(instance, pars);
