@@ -29,10 +29,8 @@ public class MethodRecord extends Record implements Completer {
     public MethodRecord(@Nullable final BaseCommand instance, @NotNull final Method method) {
         this.method = method;
         this.instance = instance;
-        final Permissions ps = method.getAnnotation(Permissions.class);
-        if (ps != null) for (final Permission p : ps.value()) permissions.add(p.value());
-        final Arguments args = method.getAnnotation(Arguments.class);
-        if (args != null) for (final Argument arg : args.value()) addArgument(arg, null);
+        for (final Permission p : method.getAnnotationsByType(Permission.class)) permissions.add(p.value());
+        for (final Argument arg : method.getAnnotationsByType(Argument.class)) addArgument(arg, null);
         int i = method.getParameterCount();
         parameters = new Object[i];
         final Parameter[] pars = method.getParameters();

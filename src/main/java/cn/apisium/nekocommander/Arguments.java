@@ -6,5 +6,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD })
 public @interface Arguments {
+    @SuppressWarnings("unused")
     Argument[] value();
 }

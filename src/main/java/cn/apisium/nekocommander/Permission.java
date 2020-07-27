@@ -1,7 +1,5 @@
 package cn.apisium.nekocommander;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.lang.annotation.*;
 
 @Documented
@@ -9,6 +7,5 @@ import java.lang.annotation.*;
 @Target({ ElementType.TYPE, ElementType.METHOD })
 @Repeatable(Permissions.class)
 public @interface Permission {
-    @NotNull
     String value();
 }

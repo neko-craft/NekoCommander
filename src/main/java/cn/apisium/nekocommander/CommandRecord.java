@@ -16,8 +16,8 @@ public final class CommandRecord extends Record {
     public CommandRecord(@NotNull final BaseCommand cmd) {
         instance = cmd;
         final Class<?> clazz = cmd.getClass();
-        final Commands commands1 = clazz.getAnnotation(Commands.class);
-        if (commands1 == null) {
+        final Command[] commands1 = clazz.getAnnotationsByType(Command.class);
+        if (commands1.length == 0) {
             childCommands = null;
             return;
         }
@@ -28,14 +28,13 @@ public final class CommandRecord extends Record {
             Commander.throwSneaky(e);
             throw new RuntimeException();
         }
-        for (final Command c : commands1.value()) names.add(c.value());
+        for (final Command c : commands1) names.add(c.value());
         for (final Method method : clazz.getMethods()) {
             if (method.getAnnotation(MainCommand.class) != null) mainCallback = new MethodRecord(cmd, method);
-            final Commands commands2 = method.getAnnotation(Commands.class);
-            if (commands2 != null) for (final Command c : commands2.value()) commands.put(c.value(), new MethodRecord(cmd, method));
+            for (final Command c : method.getAnnotationsByType(Command.class))
+                commands.put(c.value(), new MethodRecord(cmd, method));
         }
         childCommands = new ArrayList<>(commands.keySet());
-        final Permissions ps = clazz.getAnnotation(Permissions.class);
-        if (ps != null) for (final Permission p : ps.value()) permissions.add(p.value());
+        for (final Permission p : clazz.getAnnotationsByType(Permission.class)) permissions.add(p.value());
     }
 }
