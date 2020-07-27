@@ -56,7 +56,7 @@ public class MethodRecord extends Record implements Completer {
                     public @Override String[] value() { return new String[] { par.getName() }; }
                     public @Override Class<?> type() { return type; }
                     public @Override String description() { return ""; }
-                    public @Override String[] defaultValues() { return new String[0]; }
+                    public @Override String defaultValue() { return ""; }
                     public @Override boolean required() { return false; }
                     public @Override Class<? extends Completer> completer() { return null; }
                     public @Override String[] completeValues() { return new String[0]; }
@@ -111,11 +111,19 @@ public class MethodRecord extends Record implements Completer {
     private void addArgument(@NotNull final Argument arg, @Nullable final Class<?> type) {
         if (parser == null) parser = new OptionParser();
         final OptionSpecBuilder builder = parser.acceptsAll(Arrays.asList(arg.value()), arg.description());
-        final ArgumentAcceptingOptionSpec<String> a = (arg.required() ? builder.withRequiredArg()
-            : builder.withOptionalArg());
-        if (arg.defaultValues().length != 0) a.defaultsTo(arg.defaultValues());
         final Class<?> clazz = type != null && arg.type() == String.class ? type : arg.type();
-        a.ofType(clazz);
+        final ArgumentAcceptingOptionSpec<?> a = (arg.required() ? builder.withRequiredArg() : builder.withOptionalArg()).ofType(clazz);
+        if (!arg.defaultValue().equals("")) try {
+            final Object obj = clazz.getMethod("valueOf", String.class).invoke(null, arg.defaultValue());
+            for (final Method method : a.getClass().getDeclaredMethods()) if (method.getName().equals("addDefaultValue")) {
+                method.setAccessible(true);
+                method.invoke(a, obj);
+            }
+        } catch (final Exception e) {
+            Commander.throwSneaky(e);
+            throw new RuntimeException();
+        }
+
         final Object comp;
         try {
             final Class<? extends Completer> clazz1 = arg.completer();

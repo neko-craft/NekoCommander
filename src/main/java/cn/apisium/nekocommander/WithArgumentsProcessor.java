@@ -4,7 +4,7 @@ import java.lang.annotation.*;
 
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE })
+@Target({ ElementType.METHOD })
 public @interface WithArgumentsProcessor {
     Class<? extends ArgumentsProcessor> value();
 }
