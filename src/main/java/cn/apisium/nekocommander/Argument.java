@@ -5,7 +5,6 @@ import cn.apisium.nekocommander.completer.Completer;
 import java.lang.annotation.*;
 
 @Documented
-@Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.METHOD, ElementType.PARAMETER })
 @Repeatable(Arguments.class)
