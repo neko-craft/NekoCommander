@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -25,7 +26,9 @@ public class Commander implements CommandExecutor, TabCompleter {
         try {
             pluginCommandConstructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
             final Server server = Bukkit.getServer();
-            commandMap = (SimpleCommandMap) server.getClass().getDeclaredField("commandMap").get(server);
+            final Field field = server.getClass().getDeclaredField("commandMap");
+            field.setAccessible(true);
+            commandMap = (SimpleCommandMap) field.get(server);
         } catch (final Exception e) {
             throwSneaky(e);
             throw new RuntimeException();
