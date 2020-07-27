@@ -1,5 +1,7 @@
 package cn.apisium.nekocommander;
 
+import cn.apisium.nekocommander.completer.Completer;
+
 import java.lang.annotation.*;
 
 @Documented
@@ -13,4 +15,7 @@ public @interface Argument {
     String description() default "";
     String[] defaultValues() default {};
     boolean required() default false;
+
+    Class<? extends Completer> completer() default Completer.class;
+    String[] completeValues() default {};
 }

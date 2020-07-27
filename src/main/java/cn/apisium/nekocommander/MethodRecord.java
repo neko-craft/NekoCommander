@@ -1,5 +1,6 @@
 package cn.apisium.nekocommander;
 
+import cn.apisium.nekocommander.completer.Completer;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -11,39 +12,45 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
-public class MethodRecord extends Record {
+public class MethodRecord extends Record implements Completer {
     private final Method method;
     private OptionParser parser;
     private boolean isOnlyPlayer;
     private final Object[] parameters;
     private final BaseCommand instance;
+    private final HashMap<String, Object> completer = new HashMap<>();
+    private final ArrayList<String> parameterList = new ArrayList<>();
     public MethodRecord(@Nullable final BaseCommand instance, @NotNull final Method method) {
         this.method = method;
         this.instance = instance;
         final Permissions ps = method.getAnnotation(Permissions.class);
         if (ps != null) for (final Permission p : ps.value()) permissions.add(p.value());
         final Arguments args = method.getAnnotation(Arguments.class);
-        if (args != null) for (final Argument arg : args.value()) addArgument(arg);
+        if (args != null) for (final Argument arg : args.value()) addArgument(arg, null);
         int i = method.getParameterCount();
         parameters = new Object[i];
         final Parameter[] pars = method.getParameters();
         while (i-- > 0) {
             final Parameter par = pars[i];
+            final Argument arg = par.getAnnotation(Argument.class);
             if (par.getType().isAssignableFrom(CommandSender.class)) {
                 isOnlyPlayer = true;
                 parameters[i] = CommandSender.class;
                 continue;
             }
             if (par.getType().isAssignableFrom(OptionSet.class)) {
+                if (parser != null) parser = new OptionParser();
                 parameters[i] = OptionSet.class;
                 continue;
             }
-            final Argument arg = par.getAnnotation(Argument.class);
             if (arg == null) parameters[i] = par.getName();
             else {
-                addArgument(arg);
+                addArgument(arg, par.getType());
                 parameters[i] = arg.value().length == 0 ? par.getName() : arg.value()[0];
             }
         }
@@ -56,6 +63,10 @@ public class MethodRecord extends Record {
                 Commander.throwSneaky(e);
                 throw new RuntimeException();
             }
+            parser.recognizedOptions().forEach((k, v) -> {
+                final String key = k.length() == 1 ? "-" + k : "--" + k;
+                if (!k.equals("[arguments]") && !parameterList.contains(key)) parameterList.add(key);
+            });
         }
     }
 
@@ -80,12 +91,40 @@ public class MethodRecord extends Record {
         }
     }
 
-    private void addArgument(final Argument arg) {
+    private void addArgument(@NotNull final Argument arg, @Nullable final Class<?> type) {
         if (parser == null) parser = new OptionParser();
         final OptionSpecBuilder builder = parser.acceptsAll(Arrays.asList(arg.value()), arg.description());
         final ArgumentAcceptingOptionSpec<String> a = (arg.required() ? builder.withRequiredArg()
             : builder.withOptionalArg());
         if (arg.defaultValues().length != 0) a.defaultsTo(arg.defaultValues());
-        a.ofType(arg.type());
+        final Class<?> clazz = type != null && arg.type() == String.class ? type : arg.type();
+        a.ofType(clazz);
+        final Object comp;
+        try {
+            if (arg.completer() != Completer.class) comp = arg.completer().newInstance();
+            else if (arg.completeValues().length != 0) comp = Arrays.asList(arg.completeValues());
+            else comp = null;
+        } catch (Exception e) {
+            Commander.throwSneaky(e);
+            throw new RuntimeException();
+        }
+        if (comp != null) builder.options().forEach(k -> {
+            final String key = k.length() == 1 ? "-" + k : "--" + k;
+            parameterList.add(key);
+            completer.put(key, comp);
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Nullable
+    @Override
+    public List<String> complete(final @NotNull CommandSender sender, final @NotNull String[] args) {
+        if (args.length < 2) return parameterList;
+        final String arg = args[args.length - 2];
+        if (!arg.startsWith("-")) return parameterList;
+        final Object comp = completer.get(arg);
+        if (comp instanceof Completer) return ((Completer) comp).complete(sender, args);
+        else if (comp instanceof ArrayList) return (ArrayList<String>) comp;
+        else return null;
     }
 }

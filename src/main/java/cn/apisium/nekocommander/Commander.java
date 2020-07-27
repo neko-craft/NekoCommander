@@ -1,20 +1,37 @@
 package cn.apisium.nekocommander;
 
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.PluginCommand;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.command.*;
+import org.bukkit.command.Command;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-public class Commander implements CommandExecutor {
+public class Commander implements CommandExecutor, TabCompleter {
     private final Plugin plugin;
+    private boolean unsafeRegister;
     private String defaultUsage, defaultPermissionMessage, defaultDescription;
     private final ArrayList<BiConsumer<BaseCommand, PluginCommand>> processors = new ArrayList<>();
     private final HashMap<String, CommandRecord> commands = new HashMap<>();
+    private final static Constructor<PluginCommand> pluginCommandConstructor;
+    private final static SimpleCommandMap commandMap;
+
+    static {
+        try {
+            pluginCommandConstructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+            final Server server = Bukkit.getServer();
+            commandMap = (SimpleCommandMap) server.getClass().getField("commandMap").get(server);
+        } catch (final Exception e) {
+            throwSneaky(e);
+            throw new RuntimeException();
+        }
+    }
+
     public Commander(@NotNull final Plugin plugin) {
         this.plugin = plugin;
     }
@@ -28,19 +45,47 @@ public class Commander implements CommandExecutor {
 
     @SuppressWarnings("unused")
     @NotNull
-    public Commander registerCommand(@NotNull final BaseCommand command) {
+    public Commander unregisterCommand(@NotNull final BaseCommand command) {
         final CommandRecord record = new CommandRecord(command);
         if (record.names.isEmpty()) throw new RuntimeException("A command without name!");
-        record.names.forEach(name -> {
-            final PluginCommand cmd = plugin.getServer().getPluginCommand(name);
-            Objects.requireNonNull(cmd);
-            if (defaultDescription != null) cmd.setDescription(defaultDescription);
-            if (defaultPermissionMessage != null) cmd.setPermissionMessage(defaultPermissionMessage);
-            if (defaultUsage != null) cmd.setUsage(defaultUsage);
-            cmd.setExecutor(this);
-            processors.forEach(it -> it.accept(command, cmd));
-            commands.put(name, record);
-        });
+        record.names.forEach(commands::remove);
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    @NotNull
+    public Commander unregisterCommand(@NotNull final String command) {
+        commands.remove(command);
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    @NotNull
+    public Commander registerCommand(@NotNull final BaseCommand ...commands0) {
+        for (final BaseCommand command : commands0) {
+            final CommandRecord record = new CommandRecord(command);
+            if (record.names.isEmpty()) throw new RuntimeException("A command without name!");
+            record.names.forEach(name -> {
+                PluginCommand cmd = plugin.getServer().getPluginCommand(name);
+                if (cmd == null) {
+                    if (!unsafeRegister) throw new RuntimeException("No such command registered: " + name);
+                    try {
+                        cmd = pluginCommandConstructor.newInstance(name, plugin);
+                        commandMap.register(plugin.getDescription().getName(), cmd);
+                        plugin.getLogger().warning("Registered command Unsafely: " + name);
+                    } catch (final Exception e) {
+                        throwSneaky(e);
+                        throw new RuntimeException();
+                    }
+                }
+                if (defaultDescription != null) cmd.setDescription(defaultDescription);
+                if (defaultPermissionMessage != null) cmd.setPermissionMessage(defaultPermissionMessage);
+                if (defaultUsage != null) cmd.setUsage(defaultUsage);
+                cmd.setExecutor(this);
+                for (final BiConsumer<BaseCommand, PluginCommand> it : processors) it.accept(command, cmd);
+                commands.put(name, record);
+            });
+        }
         return this;
     }
 
@@ -85,6 +130,18 @@ public class Commander implements CommandExecutor {
 
     @SuppressWarnings("unused")
     @NotNull
+    public Commander setUnsafeRegister(boolean unsafeRegister) {
+        this.unsafeRegister = unsafeRegister;
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public boolean getUnsafeRegister() {
+        return unsafeRegister;
+    }
+
+    @SuppressWarnings("unused")
+    @NotNull
     public HashMap<String, CommandRecord> getCommands() {
         return commands;
     }
@@ -114,7 +171,25 @@ public class Commander implements CommandExecutor {
     }
 
     @SuppressWarnings("unchecked")
-    protected static <T extends Throwable> void throwSneaky(@NotNull Throwable exception) throws T {
+    protected static <T extends Throwable> void throwSneaky(final @NotNull Throwable exception) throws T {
         throw (T) exception;
+    }
+
+    @Override
+    public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
+        CommandRecord record = commands.get(command.getName());
+        if (record == null) return null;
+        for (int i = 0, len = args.length; i < len; i++) {
+            Record obj = record.commands.get(args[i]);
+            if (obj instanceof CommandRecord) {
+                record = (CommandRecord) obj;
+                continue;
+            }
+            if (obj == null) obj = record.mainCallback;
+            if (obj == null) return null;
+            for (final String p : obj.permissions) if (!sender.hasPermission(p)) return null;
+            if (obj instanceof MethodRecord) return ((MethodRecord) obj).complete(sender, Arrays.copyOfRange(args, i, args.length));
+        }
+        return record.childCommands;
     }
 }

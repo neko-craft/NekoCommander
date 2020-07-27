@@ -1,6 +1,8 @@
-# NekoCommander
+# NekoCommander [![](https://www.jitpack.io/v/neko-craft/NekoCommander.svg)](https://www.jitpack.io/#neko-craft/NekoCommander)
 
-## Usage
+A simple bukkit command system.
+
+## Install
 
 build.gradle:
 
@@ -12,6 +14,55 @@ dependencies {
     compile 'com.github.neko-craft:NekoCommander:-SNAPSHOT'
 }
 ```
+
+## Usage
+
+Command.java:
+
+```java
+import cn.apisium.nekocommander.*;
+import cn.apisium.nekocommander.completer.PlayersCompleter;
+import joptsimple.*;
+
+@Command("command")
+public final class Command extends BaseCommand {
+    @Command("subCommand")
+    @Permission("command.use")
+    public void command1(CommandSender sender) { }
+
+    @MainCommand
+    public boolean mainCommand() { return true; }
+
+    @Command("subCommand2")
+    public final class SubCommand extends BaseCommand {
+        @Command("command3")
+        @Argument(value = { "e", "extra" }, defaultValues = { "default" }, required = true, type = Boolean.class)
+        @Argument(value = { "p", "player" }, completer = PlayersCompleter.class)
+        public void command1(Player sender, @Argument({ "t", "time" }) int time) { }
+    }
+}
+```
+
+Main.java:
+
+```java
+import org.bukkit.plugin.java.JavaPlugin;
+import cn.apisium.nekocommander.*;
+
+public final class Main extends JavaPlugin {
+    @Override
+    public void onEnable() {
+        new Commander(this)
+            .registerCommand(new Command());
+    }
+}
+```
+
+### Registered commands
+
+- `/command`
+- `/command subCommand`
+- `/command subCommand2 command3 -e --player PLAYER --time=1h`
 
 ## Author
 
