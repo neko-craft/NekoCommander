@@ -6,7 +6,7 @@ import java.lang.annotation.*;
 
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE })
+@Target({ ElementType.TYPE, ElementType.METHOD })
 @Repeatable(Permissions.class)
 public @interface Permission {
     @NotNull

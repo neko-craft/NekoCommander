@@ -38,19 +38,20 @@ public class MethodRecord extends Record implements Completer {
         while (i-- > 0) {
             final Parameter par = pars[i];
             final Argument arg = par.getAnnotation(Argument.class);
-            if (par.getType().isAssignableFrom(CommandSender.class)) {
+            final Class<?> type = par.getType();
+            if (type.isAssignableFrom(CommandSender.class)) {
                 isOnlyPlayer = true;
                 parameters[i] = CommandSender.class;
                 continue;
             }
-            if (par.getType().isAssignableFrom(OptionSet.class)) {
+            if (type.isAssignableFrom(OptionSet.class)) {
                 if (parser != null) parser = new OptionParser();
                 parameters[i] = OptionSet.class;
                 continue;
             }
-            if (arg == null) parameters[i] = par.getName();
+            if (arg == null) parameters[i] = type.isArray() && type == String.class ? Arguments.class : par.getName();
             else {
-                addArgument(arg, par.getType());
+                addArgument(arg, type);
                 parameters[i] = arg.value().length == 0 ? par.getName() : arg.value()[0];
             }
         }
@@ -80,6 +81,7 @@ public class MethodRecord extends Record implements Completer {
             final Object obj = parameters[i];
             if (obj == Player.class) pars[i] = sender;
             else if (obj == OptionSet.class) pars[i] = set;
+            else if (obj == Arguments.class) pars[i] = args;
             else if (obj instanceof String) pars[i] = set.valueOf((String) obj);
         }
         try {
