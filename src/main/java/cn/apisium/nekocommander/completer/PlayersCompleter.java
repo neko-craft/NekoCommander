@@ -12,6 +12,7 @@ import java.util.List;
 
 @SuppressWarnings("unused")
 public class PlayersCompleter implements Completer {
+    public final static PlayersCompleter INSTANCE = new PlayersCompleter();
     @Override
     @Nullable
     public List<String> complete(final @NotNull CommandSender sender, final  @NotNull String[] args) {

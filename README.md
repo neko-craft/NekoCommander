@@ -11,6 +11,7 @@ repositories {
     maven { url 'https://www.jitpack.io' }
 }
 dependencies {
+    compileOnly 'net.sf.jopt-simple:jopt-simple:6.0-alpha-3'
     compile 'com.github.neko-craft:NekoCommander:-SNAPSHOT'
 }
 ```

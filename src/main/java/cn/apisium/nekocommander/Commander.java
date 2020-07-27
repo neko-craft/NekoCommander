@@ -25,7 +25,7 @@ public class Commander implements CommandExecutor, TabCompleter {
         try {
             pluginCommandConstructor = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
             final Server server = Bukkit.getServer();
-            commandMap = (SimpleCommandMap) server.getClass().getField("commandMap").get(server);
+            commandMap = (SimpleCommandMap) server.getClass().getDeclaredField("commandMap").get(server);
         } catch (final Exception e) {
             throwSneaky(e);
             throw new RuntimeException();
