@@ -27,6 +27,7 @@ public class MethodRecord extends Record implements Completer {
     private final BaseCommand instance;
     private final HashMap<String, Object> completer = new HashMap<>();
     private final ArrayList<String> parameterList = new ArrayList<>();
+
     public MethodRecord(@Nullable final BaseCommand instance, @NotNull final Method method) {
         this.method = method;
         this.instance = instance;
@@ -56,7 +57,7 @@ public class MethodRecord extends Record implements Completer {
                     public @Override String[] value() { return new String[] { par.getName() }; }
                     public @Override Class<?> type() { return type; }
                     public @Override String description() { return ""; }
-                    public @Override String defaultValue() { return ""; }
+                    public @Override String[] defaultValues() { return new String[0]; }
                     public @Override boolean required() { return false; }
                     public @Override Class<? extends Completer> completer() { return null; }
                     public @Override String[] completeValues() { return new String[0]; }
@@ -108,17 +109,19 @@ public class MethodRecord extends Record implements Completer {
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private void addArgument(@NotNull final Argument arg, @Nullable final Class<?> type) {
         if (parser == null) parser = new OptionParser();
         final OptionSpecBuilder builder = parser.acceptsAll(Arrays.asList(arg.value()), arg.description());
         final Class<?> clazz = type != null && arg.type() == String.class ? type : arg.type();
-        final ArgumentAcceptingOptionSpec<?> a = (arg.required() ? builder.withRequiredArg() : builder.withOptionalArg()).ofType(clazz);
-        if (!arg.defaultValue().equals("")) try {
-            final Object obj = clazz.getMethod("valueOf", String.class).invoke(null, arg.defaultValue());
-            for (final Method method : a.getClass().getDeclaredMethods()) if (method.getName().equals("addDefaultValue")) {
-                method.setAccessible(true);
-                method.invoke(a, obj);
-            }
+        final ArgumentAcceptingOptionSpec a = (arg.required() ? builder.withRequiredArg() : builder.withOptionalArg()).ofType(clazz);
+        final String[] defaultValues = arg.defaultValues();
+        int i = defaultValues.length;
+        if (i != 0) try {
+            final Method method = clazz.getMethod("valueOf", String.class);
+            final Object[] arr = new Object[i];
+            while (i-- > 0) arr[i] = method.invoke(null, defaultValues[i]);
+            a.defaultsTo(arr);
         } catch (final Exception e) {
             Commander.throwSneaky(e);
             throw new RuntimeException();
@@ -135,10 +138,10 @@ public class MethodRecord extends Record implements Completer {
             Commander.throwSneaky(e);
             throw new RuntimeException();
         }
-        if (comp != null) builder.options().forEach(k -> {
+        builder.options().forEach(k -> {
             final String key = k.length() == 1 ? "-" + k : "--" + k;
             parameterList.add(key);
-            completer.put(key, comp);
+            if (comp != null) completer.put(key, comp);
         });
     }
 

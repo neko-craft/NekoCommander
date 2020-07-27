@@ -12,7 +12,7 @@ public @interface Argument {
     String[] value();
     Class<?> type() default String.class;
     String description() default "";
-    String defaultValue() default "";
+    String[] defaultValues() default {};
     boolean required() default false;
 
     Class<? extends Completer> completer() default Completer.class;
