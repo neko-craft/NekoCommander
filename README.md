@@ -26,7 +26,7 @@ import cn.apisium.nekocommander.completer.PlayersCompleter;
 import joptsimple.*;
 
 @Command("command")
-public final class Command extends BaseCommand {
+public final class Command implements BaseCommand {
     @Command("subCommand")
     @Permission("command.use")
     public void command1(CommandSender sender) { }
@@ -35,7 +35,7 @@ public final class Command extends BaseCommand {
     public boolean mainCommand() { return true; }
 
     @Command("subCommand2")
-    public final class SubCommand extends BaseCommand {
+    public final class SubCommand implements BaseCommand {
         @Command("command3")
         @Argument(value = { "e", "extra" }, defaultValues = { "default" }, required = true, type = Boolean.class)
         @Argument(value = { "p", "player" }, completer = PlayersCompleter.class)

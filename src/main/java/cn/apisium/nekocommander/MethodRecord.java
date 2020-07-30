@@ -2,6 +2,7 @@ package cn.apisium.nekocommander;
 
 import cn.apisium.nekocommander.completer.Completer;
 import cn.apisium.nekocommander.completer.PlayersCompleter;
+import cn.apisium.nekocommander.completer.WorldsCompleter;
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -131,7 +132,8 @@ public class MethodRecord extends Record implements Completer {
         try {
             final Class<? extends Completer> clazz1 = arg.completer();
             if (clazz1 != Completer.class) comp = clazz1 == PlayersCompleter.class
-                ? PlayersCompleter.INSTANCE : clazz1.newInstance();
+                ? PlayersCompleter.INSTANCE : clazz1 == WorldsCompleter.class
+                    ? WorldsCompleter.INSTANCE : clazz1.newInstance();
             else if (arg.completeValues().length != 0) comp = Arrays.asList(arg.completeValues());
             else comp = null;
         } catch (Exception e) {
