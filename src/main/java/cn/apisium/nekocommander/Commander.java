@@ -184,7 +184,8 @@ public class Commander implements CommandExecutor, TabCompleter {
                 break;
             }
         }
-        if (method != null) return method.invoke(sender, Arrays.copyOfRange(args, Math.min(args.length - 1, i + 1), args.length));
+        if (method != null) return method.invoke(sender,
+            i + 1 >= args.length ? new String[0] : Arrays.copyOfRange(args, i + 1, args.length));
         return false;
     }
 
