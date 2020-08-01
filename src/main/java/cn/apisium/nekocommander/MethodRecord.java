@@ -1,5 +1,6 @@
 package cn.apisium.nekocommander;
 
+import cn.apisium.nekocommander.completer.BlocksCompleter;
 import cn.apisium.nekocommander.completer.Completer;
 import cn.apisium.nekocommander.completer.PlayersCompleter;
 import cn.apisium.nekocommander.completer.WorldsCompleter;
@@ -29,9 +30,10 @@ public class MethodRecord extends Record implements Completer {
     private final HashMap<String, Object> completer = new HashMap<>();
     private final ArrayList<String> parameterList = new ArrayList<>();
 
-    public MethodRecord(@Nullable final BaseCommand instance, @NotNull final Method method) {
+    public MethodRecord(@Nullable final BaseCommand instance, @NotNull final Method method, final boolean onlyPlayer) {
         this.method = method;
         this.instance = instance;
+        isOnlyPlayer = onlyPlayer || method.isAnnotationPresent(PlayerOnly.class);
         for (final Permission p : method.getAnnotationsByType(Permission.class)) permissions.add(p.value());
         for (final Argument arg : method.getAnnotationsByType(Argument.class)) addArgument(arg, null);
         int i = method.getParameterCount();
@@ -42,7 +44,7 @@ public class MethodRecord extends Record implements Completer {
             final Argument arg = par.getAnnotation(Argument.class);
             final Class<?> type = par.getType();
             if (CommandSender.class.isAssignableFrom(type)) {
-                isOnlyPlayer = true;
+                if (type == Player.class) isOnlyPlayer = true;
                 parameters[i] = CommandSender.class;
                 continue;
             }
@@ -133,7 +135,8 @@ public class MethodRecord extends Record implements Completer {
             final Class<? extends Completer> clazz1 = arg.completer();
             if (clazz1 != Completer.class) comp = clazz1 == PlayersCompleter.class
                 ? PlayersCompleter.INSTANCE : clazz1 == WorldsCompleter.class
-                    ? WorldsCompleter.INSTANCE : clazz1.newInstance();
+                    ? WorldsCompleter.INSTANCE : clazz1 == BlocksCompleter.class
+                        ? BlocksCompleter.INSTANCE : clazz1.newInstance();
             else if (arg.completeValues().length != 0) comp = Arrays.asList(arg.completeValues());
             else comp = null;
         } catch (Exception e) {

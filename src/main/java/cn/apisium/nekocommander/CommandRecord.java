@@ -32,10 +32,11 @@ public final class CommandRecord extends Record {
             throw new RuntimeException();
         }
         for (final Command c : commands1) names.add(c.value());
+        final boolean isPlayerOnly = clazz.isAnnotationPresent(PlayerOnly.class);
         for (final Method method : clazz.getMethods()) {
-            if (method.getAnnotation(MainCommand.class) != null) mainCallback = new MethodRecord(cmd, method);
+            if (method.getAnnotation(MainCommand.class) != null) mainCallback = new MethodRecord(cmd, method, isPlayerOnly);
             for (final Command c : method.getAnnotationsByType(Command.class))
-                commands.put(c.value(), new MethodRecord(cmd, method));
+                commands.put(c.value(), new MethodRecord(cmd, method, isPlayerOnly));
         }
         childCommands = new ArrayList<>(commands.keySet());
         for (final Permission p : clazz.getAnnotationsByType(Permission.class)) permissions.add(p.value());
