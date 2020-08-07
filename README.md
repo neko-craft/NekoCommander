@@ -1,10 +1,10 @@
 # NekoCommander [![](https://www.jitpack.io/v/neko-craft/NekoCommander.svg)](https://www.jitpack.io/#neko-craft/NekoCommander)
 
-A simple bukkit command system.
+A simple command system of Bukkit and Fabric.
 
-## Install
+## Install (build.gradle)
 
-build.gradle:
+### Bukkit
 
 ```groovy
 repositories {
@@ -16,9 +16,23 @@ dependencies {
 }
 ```
 
+### Fabric
+
+```groovy
+repositories {
+    maven { url 'https://www.jitpack.io' }
+    maven { url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+}
+dependencies {
+    compile 'net.sf.jopt-simple:jopt-simple:6.0-alpha-3'
+    compile 'net.md-5:bungeecord-chat:1.16-R0.4-SNAPSHOT'
+    compile 'com.github.neko-craft:NekoCommander:-SNAPSHOT'
+}
+```
+
 ## Usage
 
-Command.java:
+Command.java: **(Bukkit)**
 
 ```java
 import cn.apisium.nekocommander.*;
@@ -34,6 +48,9 @@ public final class Command implements BaseCommand {
     @MainCommand
     public boolean mainCommand() { return true; }
 
+    @Command("test")
+    public void testCommand(ProxiedCommandSender sender) { }
+
     @Command("subCommand2")
     public final class SubCommand implements BaseCommand {
         @Command("command3")
@@ -46,14 +63,31 @@ public final class Command implements BaseCommand {
 
 Main.java:
 
+### Bukkit:
+
 ```java
 import org.bukkit.plugin.java.JavaPlugin;
-import cn.apisium.nekocommander.*;
+import cn.apisium.nekocommander.impl.BukkitCommander;
 
 public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
-        new Commander(this)
+        new BukkitCommander(this)
+            .registerCommand(new Command());
+    }
+}
+```
+
+### Fabric:
+
+```java
+import net.fabricmc.api.DedicatedServerModInitializer;
+import cn.apisium.nekocommander.impl.FabricCommander;
+
+public final class Main implements DedicatedServerModInitializer {
+    @Override
+    public void onInitializeServer() {
+        new FabricCommander()
             .registerCommand(new Command());
     }
 }
@@ -62,6 +96,7 @@ public final class Main extends JavaPlugin {
 ### Registered commands
 
 - `/command`
+- `/command test`
 - `/command subCommand`
 - `/command subCommand2 command3 -e --player PLAYER --time=1h`
 

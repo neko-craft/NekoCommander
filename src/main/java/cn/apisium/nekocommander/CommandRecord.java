@@ -28,7 +28,7 @@ public final class CommandRecord extends Record {
             final CommandRecord record = new CommandRecord((BaseCommand) clazz1.getConstructors()[0].newInstance(cmd));
             record.names.forEach(it -> commands.put(it, record));
         } catch (Exception e) {
-            Commander.throwSneaky(e);
+            Utils.throwSneaky(e);
             throw new RuntimeException();
         }
         for (final Command c : commands1) names.add(c.value());

@@ -8,8 +8,6 @@ import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpecBuilder;
-import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,10 +41,18 @@ public class MethodRecord extends Record implements Completer {
             final Parameter par = pars[i];
             final Argument arg = par.getAnnotation(Argument.class);
             final Class<?> type = par.getType();
-            if (CommandSender.class.isAssignableFrom(type)) {
-                if (type == Player.class) isOnlyPlayer = true;
-                parameters[i] = CommandSender.class;
+            if (type == ProxiedCommandSender.class) {
+                parameters[i] = ProxiedCommandSender.class;
                 continue;
+            }
+            if (Utils.SENDER_CLASS.isAssignableFrom(type)) {
+                if (Utils.IS_BUKKIT && type == org.bukkit.entity.Player.class) isOnlyPlayer = true;
+                parameters[i] = Utils.SENDER_CLASS;
+                continue;
+            }
+            if (!Utils.IS_BUKKIT && type == net.minecraft.server.network.ServerPlayerEntity.class) {
+                isOnlyPlayer = true;
+                parameters[i] = net.minecraft.server.network.ServerPlayerEntity.class;
             }
             if (type == OptionSet.class) {
                 if (parser == null) parser = new OptionParser();
@@ -80,7 +86,7 @@ public class MethodRecord extends Record implements Completer {
             try {
                 processor.value().newInstance().processArguments(parser);
             } catch (Exception e) {
-                Commander.throwSneaky(e);
+                Utils.throwSneaky(e);
                 throw new RuntimeException();
             }
             parser.recognizedOptions().forEach((k, v) -> {
@@ -91,17 +97,19 @@ public class MethodRecord extends Record implements Completer {
         if (parser != null) parser.allowsUnrecognizedOptions();
     }
 
-    public boolean invoke(final @NotNull CommandSender sender, final String[] args) {
-        if (isOnlyPlayer && !(sender instanceof Player)) return false;
+    public boolean invoke(final @NotNull ProxiedCommandSender sender, final @NotNull String[] args) {
+        if (isOnlyPlayer && !sender.isPlayer) return false;
         int i = parameters.length;
         final Object[] pars = new Object[i];
         final OptionSet set = parser == null ? null : parser.parse(args);
         while (i-- > 0) {
             final Object obj = parameters[i];
-            if (obj == CommandSender.class) pars[i] = sender;
+            if (obj == Utils.SENDER_CLASS) pars[i] = sender.origin;
             else if (obj == OptionSet.class) pars[i] = set;
             else if (obj == Arguments.class) pars[i] = args;
+            else if (obj == ProxiedCommandSender.class) pars[i] = sender;
             else if (obj instanceof String) pars[i] = set == null ? null : set.valueOf((String) obj);
+            else if (!Utils.IS_BUKKIT && obj == net.minecraft.server.network.ServerPlayerEntity.class) pars[i] = sender.entity;
         }
         try {
             final Object ret = method.invoke(instance, pars);
@@ -126,7 +134,7 @@ public class MethodRecord extends Record implements Completer {
             while (i-- > 0) arr[i] = method.invoke(null, defaultValues[i]);
             a.defaultsTo(arr);
         } catch (final Exception e) {
-            Commander.throwSneaky(e);
+            Utils.throwSneaky(e);
             throw new RuntimeException();
         }
 
@@ -140,7 +148,7 @@ public class MethodRecord extends Record implements Completer {
             else if (arg.completeValues().length != 0) comp = Arrays.asList(arg.completeValues());
             else comp = null;
         } catch (Exception e) {
-            Commander.throwSneaky(e);
+            Utils.throwSneaky(e);
             throw new RuntimeException();
         }
         builder.options().forEach(k -> {
@@ -153,7 +161,7 @@ public class MethodRecord extends Record implements Completer {
     @SuppressWarnings("unchecked")
     @Nullable
     @Override
-    public List<String> complete(final @NotNull CommandSender sender, final @NotNull String[] args) {
+    public List<String> complete(final @NotNull ProxiedCommandSender sender, final @NotNull String[] args) {
         if (args.length < 2) return parameterList;
         final String arg = args[args.length - 2];
         if (!arg.startsWith("-")) return parameterList;
