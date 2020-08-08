@@ -6,10 +6,10 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
+import java.util.WeakHashMap;
 
 public abstract class ProxiedCommandSender {
-    private final static HashMap<Object, ProxiedCommandSender> cache = new HashMap<>();
+    private final static WeakHashMap<Object, ProxiedCommandSender> cache = new WeakHashMap<>();
     public final Object origin;
     @Nullable
     public Object entity;
