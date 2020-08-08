@@ -6,16 +6,17 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+
 public abstract class ProxiedCommandSender {
+    private final static HashMap<Object, ProxiedCommandSender> cache = new HashMap<>();
     public final Object origin;
     @Nullable
-    public final Object entity = null;
-    public final boolean isPlayer = false;
-    @SuppressWarnings("unused")
-    public final double x = 0, y = 0, z = 0;
+    public Object entity;
+    public boolean isPlayer;
+    public double x, y, z;
     @Nullable
-    @SuppressWarnings("unused")
-    public final String world = null, name = null;
+    public String world, name;
     protected ProxiedCommandSender(@NotNull final Object obj) {
         origin = obj;
     }
@@ -31,6 +32,19 @@ public abstract class ProxiedCommandSender {
 
     @NotNull
     public static ProxiedCommandSender newInstance(@NotNull final Object obj) {
-        return Utils.IS_BUKKIT ? new BukkitProxiedCommandSender(obj) : new FabricProxiedCommandSender(obj);
+        return cache.computeIfAbsent(obj, it -> Utils.IS_BUKKIT ? new BukkitProxiedCommandSender(obj) : new FabricProxiedCommandSender(obj));
+    }
+
+    @Override
+    public int hashCode() {
+        return origin.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ProxiedCommandSender that = (ProxiedCommandSender) o;
+        return origin == that.origin || origin.equals(that.origin);
     }
 }

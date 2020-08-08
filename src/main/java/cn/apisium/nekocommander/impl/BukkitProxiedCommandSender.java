@@ -1,18 +1,11 @@
 package cn.apisium.nekocommander.impl;
 
 import cn.apisium.nekocommander.ProxiedCommandSender;
-import cn.apisium.nekocommander.Utils;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class BukkitProxiedCommandSender extends ProxiedCommandSender {
-    @Nullable
-    public final Object entity;
-    public final boolean isPlayer;
-    public final double x, y, z;
-    @Nullable
-    public final String world, name;
     public BukkitProxiedCommandSender(@NotNull final Object obj) {
         super(obj);
         name = ((org.bukkit.command.CommandSender) obj).getName();
@@ -41,7 +34,7 @@ public class BukkitProxiedCommandSender extends ProxiedCommandSender {
     @NotNull
     @SuppressWarnings("unused")
     public BukkitProxiedCommandSender sendMessage(@NotNull final BaseComponent ...components) {
-        if (Utils.IS_BUKKIT) ((org.bukkit.command.CommandSender) origin).spigot().sendMessage(components);
+        ((org.bukkit.command.CommandSender) origin).spigot().sendMessage(components);
         return this;
     }
 

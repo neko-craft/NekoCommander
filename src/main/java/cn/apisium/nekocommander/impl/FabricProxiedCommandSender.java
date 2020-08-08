@@ -5,15 +5,8 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.chat.ComponentSerializer;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class FabricProxiedCommandSender extends ProxiedCommandSender {
-    @Nullable
-    public final Object entity;
-    public final boolean isPlayer;
-    public final double x, y, z;
-    @Nullable
-    public final String world, name;
     public FabricProxiedCommandSender(@NotNull final Object obj) {
         super(obj);
         final net.minecraft.server.command.ServerCommandSource sss = (net.minecraft.server.command.ServerCommandSource) obj;
