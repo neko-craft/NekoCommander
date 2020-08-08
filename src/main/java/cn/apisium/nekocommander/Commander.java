@@ -109,7 +109,7 @@ public abstract class Commander <T, S> {
         if (record == null) return false;
         MethodRecord method = record.mainCallback;
         int i = 0, len = args.length;
-        final ProxiedCommandSender pcs = new ProxiedCommandSender(sender);
+        final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
         for (; i < len; i++) {
             Record obj = record.commands.get(args[i]);
             if (obj instanceof CommandRecord) {
@@ -141,7 +141,7 @@ public abstract class Commander <T, S> {
     public List<String> onTabComplete(@NotNull final S sender, @NotNull final String command, @NotNull final String alias, @NotNull final String[] args) {
         CommandRecord record = commands.get(command);
         if (record == null) return null;
-        final ProxiedCommandSender pcs = new ProxiedCommandSender(sender);
+        final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
         for (int i = 0, len = args.length; i < len; i++) {
             final Record obj = record.commands.get(args[i]);
             if (i == len - 1 && obj != null) break;
