@@ -44,6 +44,7 @@ public class ProxiedCommandSender {
             isPlayer = entity instanceof net.minecraft.server.network.ServerPlayerEntity;
         }
     }
+    @SuppressWarnings("UnusedReturnValue")
     @NotNull
     public ProxiedCommandSender sendMessage(@NotNull final String ...messages) {
         if (Utils.IS_BUKKIT) ((org.bukkit.command.CommandSender) origin).sendMessage(messages);
@@ -52,12 +53,13 @@ public class ProxiedCommandSender {
         return this;
     }
     @NotNull
+    @SuppressWarnings("unused")
     public ProxiedCommandSender sendMessage(@NotNull final BaseComponent ...components) {
         if (Utils.IS_BUKKIT) ((org.bukkit.command.CommandSender) origin).spigot().sendMessage(components);
         else ((net.minecraft.server.command.ServerCommandSource) origin).sendFeedback(components.length == 0
             ? net.minecraft.text.LiteralText.EMPTY
-            : net.minecraft.text.Text.Serializer.fromJson(ComponentSerializer.toString(components.length == 1 ? components[0] : new TextComponent(components))
-        ), false);
+            : net.minecraft.text.Text.Serializer.fromJson(ComponentSerializer.toString(components.length == 1 ? components[0] : new TextComponent(components)))
+        , false);
         return this;
     }
 

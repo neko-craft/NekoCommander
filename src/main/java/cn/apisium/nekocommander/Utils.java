@@ -4,8 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 public final class Utils {
     public static final boolean IS_BUKKIT;
-    public static final Class<?> SENDER_CLASS = Utils.IS_BUKKIT ? org.bukkit.command.CommandSender.class
-        : net.minecraft.server.command.ServerCommandSource.class;
+    public static final Class<?> SENDER_CLASS;
     private Utils() {}
 
     static {
@@ -15,6 +14,8 @@ public final class Utils {
             isBukkit = true;
         } catch (Exception ignored) { }
         IS_BUKKIT = isBukkit;
+        SENDER_CLASS = isBukkit ? org.bukkit.command.CommandSender.class
+            : net.minecraft.server.command.ServerCommandSource.class;
     }
 
     @SuppressWarnings("unchecked")
