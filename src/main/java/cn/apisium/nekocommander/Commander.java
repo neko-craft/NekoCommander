@@ -189,13 +189,14 @@ public abstract class Commander <T, S> {
         CommandRecord record = commands.get(command);
         if (record == null) return null;
         final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
-        List<String> result = record.childCommands;
+        List<String> result = null;
+        boolean flag = false;
         loop : for (int i = 0, len = args.length; i < len; i++) {
             final Record obj = record.commands.get(args[i]);
-            if (i == len - 1 && obj != null) break;
-            if (obj == null) break;
+            if (obj == null || i == len - 1) break;
             for (final String p : obj.permissions) if (!pcs.hasPermission(p)) {
                 result = EMPTY;
+                flag = true;
                 break loop;
             }
             if (obj instanceof CommandRecord) {
@@ -205,10 +206,13 @@ public abstract class Commander <T, S> {
             if (obj instanceof MethodRecord) {
                 final List<String> ret = ((MethodRecord) obj).complete(pcs, Arrays.copyOfRange(args, Math.min(args.length - 1, i + 1), args.length));
                 result = ret == null ? EMPTY : ret;
+                flag = true;
                 break;
             }
         }
-        if (tabCompleter != null) result = tabCompleter.onTabComplete(pcs, record, alias, args, result == EMPTY ? new ArrayList<>() : result);
+        if (!flag) result = record.childCommands;
+        if (tabCompleter != null) result = tabCompleter.onTabComplete(pcs, record, alias, args, result == EMPTY
+            ? new ArrayList<>() : result == null ? null : new ArrayList<>(result));
         return result;
     }
 }
