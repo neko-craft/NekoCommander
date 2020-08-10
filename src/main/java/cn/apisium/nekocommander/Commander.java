@@ -101,8 +101,10 @@ public abstract class Commander <T, S> {
     }
 
     @SuppressWarnings("unused")
-    public void onPreCommand(@Nullable final PreCommandExecutor onCommand) {
+    @NotNull
+    public Commander<T, S> onPreCommand(@Nullable final PreCommandExecutor onCommand) {
         this.preCommandExecutor = onCommand;
+        return this;
     }
 
     @SuppressWarnings("unused")
@@ -112,8 +114,10 @@ public abstract class Commander <T, S> {
     }
 
     @SuppressWarnings("unused")
-    public void onCommand(@Nullable final CommandExecutor onCommand) {
+    @NotNull
+    public Commander<T, S> onCommand(@Nullable final CommandExecutor onCommand) {
         this.onCommand = onCommand;
+        return this;
     }
 
     @SuppressWarnings("unused")
@@ -123,8 +127,10 @@ public abstract class Commander <T, S> {
     }
 
     @SuppressWarnings("unused")
-    public void onTabComplete(@Nullable final TabCompleter tabCompleter) {
+    @NotNull
+    public Commander<T, S> onTabComplete(@Nullable final TabCompleter tabCompleter) {
         this.tabCompleter = tabCompleter;
+        return this;
     }
 
     @SuppressWarnings("unused")
