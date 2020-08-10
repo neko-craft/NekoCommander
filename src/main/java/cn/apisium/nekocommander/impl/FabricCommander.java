@@ -4,7 +4,6 @@ import cn.apisium.nekocommander.BaseCommand;
 import cn.apisium.nekocommander.CommandRecord;
 import cn.apisium.nekocommander.Commander;
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -16,7 +15,6 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.server.ServerStartCallback;
 import net.minecraft.server.command.ServerCommandSource;
-import org.bukkit.command.PluginCommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -51,7 +49,7 @@ public final class FabricCommander extends Commander<LiteralCommandNode<ServerCo
     @Override
     public int run(CommandContext<ServerCommandSource> context) {
         final Record record = new Record(context);
-        return record.args == null ? 0 : onCommand(context.getSource(), record.name, record.label, record.args) ? 1 : 0;
+        return record.args == null ? 0 : runCommand(context.getSource(), record.name, record.label, record.args) ? 1 : 0;
     }
 
     @Override
@@ -59,7 +57,7 @@ public final class FabricCommander extends Commander<LiteralCommandNode<ServerCo
         builder = builder.createOffset(builder.getInput().lastIndexOf(' ') + 1);
         final Record record = new Record(context);
         if (record.args != null) {
-            final List<String> list = onTabComplete(context.getSource(), record.name, record.label, record.args);
+            final List<String> list = complete(context.getSource(), record.name, record.label, record.args);
             if (list != null && !list.isEmpty()) list.forEach(builder::suggest);
         }
         return builder.buildFuture();

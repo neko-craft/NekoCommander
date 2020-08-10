@@ -12,6 +12,9 @@ public abstract class Commander <T, S> {
     private final ArrayList<BiConsumer<BaseCommand, T>> processors = new ArrayList<>();
     private final HashMap<String, CommandRecord> commands = new HashMap<>();
     private final static List<String> EMPTY = Collections.emptyList();
+    private CommandExecutor onCommand;
+    private TabCompleter tabCompleter;
+    private PreCommandExecutor preCommandExecutor;
 
     @SuppressWarnings("unused")
     @NotNull
@@ -98,64 +101,108 @@ public abstract class Commander <T, S> {
     }
 
     @SuppressWarnings("unused")
+    public void onPreCommand(@Nullable final PreCommandExecutor onCommand) {
+        this.preCommandExecutor = onCommand;
+    }
+
+    @SuppressWarnings("unused")
+    @Nullable
+    public PreCommandExecutor getPreCommand() {
+        return preCommandExecutor;
+    }
+
+    @SuppressWarnings("unused")
+    public void onCommand(@Nullable final CommandExecutor onCommand) {
+        this.onCommand = onCommand;
+    }
+
+    @SuppressWarnings("unused")
+    @Nullable
+    public CommandExecutor getOnCommand() {
+        return onCommand;
+    }
+
+    @SuppressWarnings("unused")
+    public void onTabComplete(@Nullable final TabCompleter tabCompleter) {
+        this.tabCompleter = tabCompleter;
+    }
+
+    @SuppressWarnings("unused")
+    @Nullable
+    public TabCompleter getOnTabComplete() {
+        return tabCompleter;
+    }
+
+    @SuppressWarnings("unused")
     @NotNull
     public ArrayList<BiConsumer<BaseCommand, T>> getProcessors() {
         return processors;
     }
 
     @SuppressWarnings("unused")
-    public boolean onCommand(final S sender, String command, final String label, final String[] args) {
+    public boolean runCommand(final S sender, String command, final String label, final String[] args) {
         CommandRecord record = commands.get(command);
         if (record == null) return false;
+        final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
+        if (preCommandExecutor != null && !preCommandExecutor.onPreCommand(pcs, record, command, args)) return true;
         MethodRecord method = record.mainCallback;
         int i = 0, len = args.length;
-        final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
-        for (; i < len; i++) {
+        boolean result = false;
+        loop: for (; i < len; i++) {
             Record obj = record.commands.get(args[i]);
             if (obj instanceof CommandRecord) {
                 record = (CommandRecord) obj;
                 for (final String p : obj.permissions) if (!pcs.hasPermission(p)) {
                     if (defaultPermissionMessage != null) pcs.sendMessage(defaultPermissionMessage);
-                    return true;
+                    result = true;
+                    break loop;
                 }
                 continue;
             }
             if (obj == null) obj = record.mainCallback;
-            if (obj == null) return false;
+            if (obj == null) break;
             for (final String p : obj.permissions) if (!pcs.hasPermission(p)) {
                 if (defaultPermissionMessage != null) pcs.sendMessage(defaultPermissionMessage);
-                return true;
+                result = true;
+                break loop;
             }
             if (obj instanceof MethodRecord) {
                 method = (MethodRecord) obj;
                 break;
             }
         }
-        if (method != null) return method.invoke(pcs,
+        if (method != null) result = method.invoke(pcs,
             i + 1 >= args.length ? new String[0] : Arrays.copyOfRange(args, i + 1, args.length));
-        return false;
+        if (onCommand != null) result = onCommand.onCommand(pcs, record, label, args, result);
+        return result;
     }
 
     @Nullable
     @SuppressWarnings("unused")
-    public List<String> onTabComplete(@NotNull final S sender, @NotNull final String command, @NotNull final String alias, @NotNull final String[] args) {
+    public List<String> complete(@NotNull final S sender, @NotNull final String command, @NotNull final String alias, @NotNull final String[] args) {
         CommandRecord record = commands.get(command);
         if (record == null) return null;
         final ProxiedCommandSender pcs = ProxiedCommandSender.newInstance(sender);
-        for (int i = 0, len = args.length; i < len; i++) {
+        List<String> result = record.childCommands;
+        loop : for (int i = 0, len = args.length; i < len; i++) {
             final Record obj = record.commands.get(args[i]);
             if (i == len - 1 && obj != null) break;
             if (obj == null) break;
-            for (final String p : obj.permissions) if (!pcs.hasPermission(p)) return EMPTY;
+            for (final String p : obj.permissions) if (!pcs.hasPermission(p)) {
+                result = EMPTY;
+                break loop;
+            }
             if (obj instanceof CommandRecord) {
                 record = (CommandRecord) obj;
                 continue;
             }
             if (obj instanceof MethodRecord) {
                 final List<String> ret = ((MethodRecord) obj).complete(pcs, Arrays.copyOfRange(args, Math.min(args.length - 1, i + 1), args.length));
-                return ret == null ? EMPTY : ret;
+                result = ret == null ? EMPTY : ret;
+                break;
             }
         }
-        return record.childCommands;
+        if (tabCompleter != null) result = tabCompleter.onTabComplete(pcs, record, alias, args, result == EMPTY ? new ArrayList<>() : result);
+        return result;
     }
 }

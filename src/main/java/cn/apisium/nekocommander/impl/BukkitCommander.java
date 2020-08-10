@@ -77,12 +77,12 @@ public final class BukkitCommander extends Commander<PluginCommand, CommandSende
 
     @Override
     public boolean onCommand(@NotNull final CommandSender sender, @NotNull final Command command, @NotNull final String label, @NotNull final String[] args) {
-        return onCommand(sender, command.getName(), label, args);
+        return runCommand(sender, command.getName(), label, args);
     }
 
     @Override
     @Nullable
     public List<String> onTabComplete(@NotNull final CommandSender sender, @NotNull final Command command, @NotNull final String alias, @NotNull final String[] args) {
-        return onTabComplete(sender, command.getName(), alias, args);
+        return complete(sender, command.getName(), alias, args);
     }
 }
