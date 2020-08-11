@@ -167,7 +167,7 @@ public class MethodRecord extends Record implements Completer {
         if (!arg.startsWith("-")) return parameterList;
         final Object comp = completer.get(arg);
         if (comp instanceof Completer) return ((Completer) comp).complete(sender, args);
-        else if (comp instanceof ArrayList) return (ArrayList<String>) comp;
+        else if (comp instanceof List) return (List<String>) comp;
         else return null;
     }
 }
