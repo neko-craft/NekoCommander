@@ -3,7 +3,6 @@ package cn.apisium.nekocommander.impl;
 import cn.apisium.nekocommander.ProxiedCommandSender;
 import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class BukkitProxiedCommandSender extends ProxiedCommandSender {
     public BukkitProxiedCommandSender(@NotNull final Object obj) {

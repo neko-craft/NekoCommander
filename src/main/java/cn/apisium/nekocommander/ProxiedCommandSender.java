@@ -6,10 +6,7 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.WeakHashMap;
-
 public abstract class ProxiedCommandSender {
-    private final static WeakHashMap<Object, ProxiedCommandSender> cache = new WeakHashMap<>();
     public final Object origin;
     @Nullable
     public Object entity;
@@ -32,7 +29,7 @@ public abstract class ProxiedCommandSender {
 
     @NotNull
     public static ProxiedCommandSender newInstance(@NotNull final Object obj) {
-        return cache.computeIfAbsent(obj, it -> Utils.IS_BUKKIT ? new BukkitProxiedCommandSender(obj) : new FabricProxiedCommandSender(obj));
+        return Utils.IS_BUKKIT ? new BukkitProxiedCommandSender(obj) : new FabricProxiedCommandSender(obj);
     }
 
     @Override
