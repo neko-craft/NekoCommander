@@ -6,6 +6,8 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.WeakHashMap;
+
 public abstract class ProxiedCommandSender {
     public final Object origin;
     @Nullable
@@ -14,6 +16,7 @@ public abstract class ProxiedCommandSender {
     public double x, y, z;
     @Nullable
     public String world, name;
+    private static final WeakHashMap<Object, ProxiedCommandSender> cache = new WeakHashMap<>();
     protected ProxiedCommandSender(@NotNull final Object obj) {
         origin = obj;
     }
@@ -26,6 +29,12 @@ public abstract class ProxiedCommandSender {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public abstract boolean hasPermission(@NotNull final String permission);
+
+    @NotNull
+    @SuppressWarnings("unused")
+    public static ProxiedCommandSender getInstance(@NotNull final Object obj) {
+        return cache.computeIfAbsent(obj, it -> newInstance(obj));
+    }
 
     @NotNull
     public static ProxiedCommandSender newInstance(@NotNull final Object obj) {
